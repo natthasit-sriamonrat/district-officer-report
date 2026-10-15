@@ -3,6 +3,15 @@ const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
 
+const path = require('path');
+
+// ตัวอย่างการสั่งให้ Express เสิร์ฟหน้าเว็บ React (ถ้ามีโฟลเดอร์ build หรือ dist)
+app.use(express.static(path.join(__dirname, 'client/build')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json());
