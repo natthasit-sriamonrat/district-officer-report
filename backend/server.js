@@ -5,31 +5,21 @@ require('dotenv').config();
 
 const path = require('path');
 
-// ตัวอย่างการสั่งให้ Express เสิร์ฟหน้าเว็บ React (ถ้ามีโฟลเดอร์ build หรือ dist)
-app.use(express.static(path.join(__dirname, 'client/build')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
-});
-
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ตั้งค่าเชื่อมต่อ PostgreSQL (ผ่าน Docker พอร์ต 5433)
+// แก้ไขการเชื่อมต่อ: ใช้ DATABASE_URL จาก Environment Variables บน Vercel / Supabase
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'user_login_db',
-    password: 'secretpassword', // รหัสผ่านที่ตั้งไว้ใน docker-compose.yml
-    port: 5433,
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // จำเป็นต้องมีสำหรับการเชื่อมต่อ Supabase บน Cloud
 });
 
 pool.connect((err) => {
     if (err) {
         console.error('Database connection error', err.stack);
     } else {
-        console.log('Connected to PostgreSQL Database via Docker.');
+        console.log('Connected to PostgreSQL Database on Cloud (Supabase).');
     }
 });
 
@@ -134,17 +124,12 @@ app.post('/api/admin/users', async (req, res) => {
         
         res.json({ success: true, message: 'เพิ่มผู้ใช้งานสำเร็จ' });
     } catch (err) {
-        if (err.code === '23505') { // Error code สำหรับ Duplicate key ใน PostgreSQL
+        if (err.code === '23505') { 
             return res.status(400).json({ success: false, message: 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว' });
         }
         console.error(err);
         res.status(500).json({ success: false, message: 'Database error' });
     }
-});
-
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
 });
 
 // 4. API สำหรับ Admin: แก้ไขข้อมูลผู้ใช้งาน (Update)
@@ -190,4 +175,10 @@ app.delete('/api/admin/users/:id', async (req, res) => {
         console.error(err);
         res.status(500).json({ success: false, message: 'Database error' });
     }
+});
+
+// ย้าย app.listen มาไว้ล่างสุด และรองรับ Dynamic Port สำหรับ Vercel
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
