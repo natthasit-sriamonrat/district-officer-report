@@ -7,6 +7,7 @@ function App() {
   const [idCard, setIdCard] = useState('');
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
+  
 
   // State สำหรับควบคุมหน้าจอของ User ทั่วไป ('profile' = หน้าหลัก, 'form' = หน้ากรอกบันทึกผลฯ)
   const [userView, setUserView] = useState('profile');
@@ -27,7 +28,7 @@ function App() {
     setError('');
     try {
       //const res = await axios.post('http://localhost:5000/api/login', { id_card: idCard });
-      const res = await axios.post('http://postgresql://postgres:[9tLQN6K8apoQw4IQ]@db.nnpdtpvawumcipzqevvf.supabase.co:5432/postgres/api/login', { id_card: idCard });
+      const res = await axios.post('/api/login', { id_card: idCard });
       if (res.data.success) {
         setUser(res.data.user);
         if (res.data.user.role === 'admin') {
@@ -43,7 +44,7 @@ function App() {
   const fetchUsers = async () => {
     try {
       //const res = await axios.get('http://localhost:5000/api/admin/users');
-      const res = await axios.get('http://postgresql://postgres:[9tLQN6K8apoQw4IQ]@db.nnpdtpvawumcipzqevvf.supabase.co:5432/postgres/api/admin/users');
+      const res = await axios.get('/api/admin/users');
       setUsersList(res.data);
     } catch (err) {
       console.error(err);
@@ -56,14 +57,14 @@ function App() {
     try {
       if (editingUserId) {
         //const res = await axios.put(`http://localhost:5000/api/admin/users/${editingUserId}`, form);
-        const res = await axios.put(`http://postgresql://postgres:[9tLQN6K8apoQw4IQ]@db.nnpdtpvawumcipzqevvf.supabase.co:5432/postgres/api/admin/users/${editingUserId}`, form);
+        const res = await axios.put(`/api/admin/users/${editingUserId}`, form);
         if (res.data.success) {
           alert('อัปเดตข้อมูลผู้ใช้งานสำเร็จ');
           setEditingUserId(null);
         }
       } else {
         //const res = await axios.post('http://localhost:5000/api/admin/users', form);
-        const res = await axios.post('http://postgresql://postgres:[9tLQN6K8apoQw4IQ]@db.nnpdtpvawumcipzqevvf.supabase.co:5432/postgres/api/admin/users', form);
+        const res = await axios.post('/api/admin/users', form);
         if (res.data.success) {
           alert('เพิ่มผู้ใช้งานสำเร็จ');
         }
@@ -111,7 +112,7 @@ function App() {
     if (window.confirm('คุณต้องการลบผู้ใช้งานนี้ใช่หรือไม่?')) {
       try {
         //const res = await axios.delete(`http://localhost:5000/api/admin/users/${userId}`);
-        const res = await axios.delete(`http://postgresql://postgres:[9tLQN6K8apoQw4IQ]@db.nnpdtpvawumcipzqevvf.supabase.co:5432/postgres/api/admin/users/${userId}`);
+        const res = await axios.delete(`/api/admin/users/${userId}`);
         if (res.data.success) {
           alert('ลบผู้ใช้งานสำเร็จ');
           fetchUsers();
