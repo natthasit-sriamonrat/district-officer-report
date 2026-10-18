@@ -1,0 +1,325 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* พื้นที่พิมพ์ PDF */
+.pdf-print-area {
+  display: block;
+  color: #000;
+  font-family: "Sarabun", "TH Sarabun New", sans-serif;
+  font-size: 12pt;
+  background: #fff;
+}
+
+.pdf-container {
+  width: 210mm;
+  height: 297mm;
+  padding: 12mm 14mm;
+  margin: 0 auto;
+  box-sizing: border-box;
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+  page-break-after: always;
+  break-after: page;
+}
+
+.pdf-container:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+/* หัวกระดาษ */
+.form-header h1 {
+  text-align: center;
+  font-size: 17pt;
+  font-weight: normal;
+  margin: 0 0 7mm;
+  line-height: 1.3;
+}
+
+.month-line {
+  text-align: center;
+  margin: 0 0 3mm;
+}
+
+.officer-info {
+  font-size: 11.5pt;
+  line-height: 1.45;
+  margin-bottom: 4mm;
+}
+
+.officer-info p {
+  margin: 0 0 1mm;
+}
+
+/* ตารางหลัก */
+.duty-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+.duty-table th,
+.duty-table td {
+  border: 1px solid #000;
+  padding: 2mm;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.duty-table th {
+  text-align: center;
+  font-weight: normal;
+  height: 10mm;
+}
+
+.duty-detail {
+  height: 111mm;
+}
+
+.duty-detail p {
+  margin: 3mm 0;
+}
+
+.duty-text {
+  min-height: 10mm;
+  white-space: pre-wrap;
+}
+
+.result-text {
+  min-height: 18mm;
+  white-space: pre-wrap;
+}
+
+.evidence-count {
+  margin-top: 4mm !important;
+}
+
+.signature-block {
+  text-align: center;
+  margin-top: 3mm;
+  font-size: 10pt;
+}
+
+.signature-block p {
+  margin: 1mm 0;
+}
+
+.certification-text {
+  margin-top: 4mm !important;
+}
+
+.supervisor-sign {
+  margin-top: 3mm;
+  font-size: 9.5pt;
+}
+
+.commander-opinion {
+  font-size: 10pt;
+}
+
+.opinion-lines {
+  line-height: 2.1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.commander-sign {
+  text-align: center;
+  margin-top: 8mm;
+  line-height: 1.8;
+}
+
+.commander-sign p {
+  margin: 2mm 0;
+}
+
+/* ส่วนรับเอกสาร */
+.receipt-section {
+  border: 1px solid #000;
+  border-top: none;
+  padding: 3mm;
+  font-size: 10pt;
+  line-height: 1.5;
+}
+
+.receipt-section p {
+  margin: 0 0 2mm;
+}
+
+.receipt-sign {
+  text-align: center;
+  margin-top: 4mm;
+}
+
+/* รูปหลักฐาน 1–5 ด้านล่างหน้าแรก */
+.evidence-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2mm;
+  margin-top: 5mm;
+  height: 36mm; /* สามารถปรับความสูงรวมของแถวรูปภาพตรงนี้ได้ */
+}
+
+.evidence-thumb {
+  min-width: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.evidence-thumb img {
+  width: 100%;
+  height: 29mm; /* ปรับความสูงของรูป (เปลี่ยนจาก 29mm เป็นค่าที่ต้องการ เช่น 25mm หรือ 32mm) */
+  object-fit: contain;
+}
+
+.evidence-thumb span {
+  font-size: 8pt;
+  margin-top: 1mm;
+}
+
+/* หน้ารูปหลักฐาน */
+.evidence-page {
+  padding: 12mm 15mm;
+}
+
+.evidence-page h2 {
+  text-align: center;
+  font-size: 16pt;
+  font-weight: normal;
+  margin: 0 0 8mm;
+}
+
+.evidence-grid {
+  display: flex;
+  flex-direction: column; /* เรียงจากบนลงล่าง */
+  justify-content: space-around; /*กระจายพื้นที่ให้อยู่บนและล่างอย่างสมดุล */
+  align-items: center;
+  height: 240mm; /* ความสูงเต็มพื้นที่หน้ากระดาษ A4 (หักลบขอบและหัวข้อ) */
+  width: 100%;
+}
+
+.evidence-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  break-inside: avoid;
+  margin: 0;
+}
+
+.evidence-item img {
+  display: block;
+  width: 100%;
+  max-width: 170mm; /* ปรับความกว้างของรูปให้ใหญ่เต็มตา */
+  height: auto;
+  max-height: 105mm; /* กำหนดความสูงสูงสุดของแต่ละรูปให้อยู่ในเกณฑ์พอดี 2 รูปต่อหน้า */
+  object-fit: contain; /* รักษาสัดส่วนของรูปไม่ให้เพี้ยน */
+}
+
+.evidence-item figcaption {
+  font-size: 11pt;
+  text-align: center;
+  margin-top: 3mm;
+}
+
+/* ตั้งค่าตอนพิมพ์หรือแปลงเป็น PDF */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+/* ซ่อนเอกสารจากหน้าจอปกติ */
+.pdf-print-area {
+  display: none;
+}
+
+/* แสดงเฉพาะเอกสารเมื่อเปิดหน้าพิมพ์ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .pdf-print-area,
+  .pdf-print-area * {
+    visibility: visible;
+  }
+
+  .pdf-print-area {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    background: white;
+  }
+
+  .pdf-container {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 12mm 14mm;
+    box-sizing: border-box;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .pdf-container:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+}
