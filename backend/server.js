@@ -9,17 +9,34 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// แก้ไขการเชื่อมต่อ: ใช้ DATABASE_URL จาก Environment Variables บน Vercel / Supabase
+// ตั้งค่าเชื่อมต่อ PostgreSQL (ผ่าน Docker พอร์ต 5433)
+// const pool = new Pool({
+//     user: 'postgres',
+//     host: 'localhost',
+//     database: 'user_login_db',
+//     password: 'secretpassword', // รหัสผ่านที่ตั้งไว้ใน docker-compose.yml
+//     port: 5433,
+// });
+
+// ตั้งค่าเชื่อมต่อ: รองรับทั้งบน Cloud (Supabase) และ Local
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // จำเป็นต้องมีสำหรับการเชื่อมต่อ Supabase บน Cloud
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 pool.connect((err) => {
     if (err) {
         console.error('Database connection error', err.stack);
     } else {
-        console.log('Connected to PostgreSQL Database on Cloud (Supabase).');
+        console.log('Connected to PostgreSQL Database successfully.');
+    }
+});
+
+pool.connect((err) => {
+    if (err) {
+        console.error('Database connection error', err.stack);
+    } else {
+        console.log('Connected to PostgreSQL Database via Docker.');
     }
 });
 
@@ -124,7 +141,7 @@ app.post('/api/admin/users', async (req, res) => {
         
         res.json({ success: true, message: 'เพิ่มผู้ใช้งานสำเร็จ' });
     } catch (err) {
-        if (err.code === '23505') { 
+        if (err.code === '23505') { // Error code สำหรับ Duplicate key ใน PostgreSQL
             return res.status(400).json({ success: false, message: 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว' });
         }
         console.error(err);
@@ -141,7 +158,7 @@ app.put('/api/admin/users/:id', async (req, res) => {
         position, status, role 
     } = req.body;
 
-    try {
+    try {d-card-login-system
         const query = `
             UPDATE users 
             SET id_card = $1, prefix = $2, first_name = $3, last_name = $4, birth_date = $5, 
@@ -177,8 +194,7 @@ app.delete('/api/admin/users/:id', async (req, res) => {
     }
 });
 
-// ย้าย app.listen มาไว้ล่างสุด และรองรับ Dynamic Port สำหรับ Vercel
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
