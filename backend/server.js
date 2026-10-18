@@ -158,7 +158,7 @@ app.put('/api/admin/users/:id', async (req, res) => {
         position, status, role 
     } = req.body;
 
-    try {d-card-login-system
+    try {
         const query = `
             UPDATE users 
             SET id_card = $1, prefix = $2, first_name = $3, last_name = $4, birth_date = $5, 
