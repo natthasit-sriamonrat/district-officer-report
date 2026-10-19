@@ -3,8 +3,6 @@ const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
 
-const path = require('path');
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -26,9 +24,9 @@ app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
+  // Supabase's hosted PostgreSQL requires TLS. The pooler URL is recommended
+  // for serverless deployments because each function instance has few connections.
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : undefined,
   connectionTimeoutMillis: 10000,
   max: 5
 });
@@ -37,40 +35,20 @@ pool.on('error', (err) => {
   console.error('Unexpected PostgreSQL pool error:', err.message);
 });
 
-// ตรวจสอบการเชื่อมต่อโดยไม่เปิด Client ค้างไว้
-pool.query('SELECT NOW()')
-  .then(() => {
-    console.log('Connected to PostgreSQL successfully');
-  })
-  .catch((err) => {
-    console.error('PostgreSQL connection failed:', {
-      code: err.code,
-      message: err.message
-    });
-  });
-
-pool.connect((err) => {
-    if (err) {
-        console.error('Database connection error', err.stack);
-    } else {
-        console.log('Connected to PostgreSQL Database successfully.');
-    }
-});
-
-// pool.connect((err) => {
-//     if (err) {
-//         console.error('Database connection error', err.stack);
-//     } else {
-//         console.log('Connected to PostgreSQL Database via Docker.');
-//     }
-// });
-
 // 1. API Login ด้วยเลข 13 หลัก
 app.post('/api/login', async (req, res) => {
-    const { id_card } = req.body;
+    const { id_card } = req.body || {};
 
     if (!id_card || id_card.length !== 13) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกเลขบัตรประชาชน 13 หลักให้ถูกต้อง' });
+    }
+
+    if (!process.env.DATABASE_URL) {
+        console.error('Login unavailable: DATABASE_URL is not configured');
+        return res.status(503).json({
+            success: false,
+            message: 'ระบบยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล'
+        });
     }
 
     try {
@@ -226,7 +204,13 @@ app.delete('/api/admin/users/:id', async (req, res) => {
     }
 });
 
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Vercel imports the Express app as a serverless function. Keep listen() for
+// local development only.
+if (require.main === module) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;
