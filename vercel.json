@@ -1,8 +1,24 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "frontend/build",
+  "services": {
+    "backend": {
+      "root": "backend/",
+      "framework": "express"
+    },
+    "frontend": {
+      "root": "frontend/",
+      "framework": "create-react-app",
+      "buildCommand": "npm run build",
+      "outputDirectory": "build"
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/(.*)", "destination": "/$1" }
+    {
+      "source": "/api/(.*)",
+      "destination": { "service": "backend" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "frontend" }
+    }
   ]
 }
