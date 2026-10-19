@@ -28,7 +28,8 @@ const pool = new Pool({
   // for serverless deployments because each function instance has few connections.
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : undefined,
   connectionTimeoutMillis: 10000,
-  max: 5
+  // Vercel instances are short-lived; keep the per-instance client pool small.
+  max: 1
 });
 
 pool.on('error', (err) => {
@@ -92,9 +93,12 @@ app.post('/api/login', async (req, res) => {
             message: err.message
         });
 
+        const isDnsError = err.code === 'ENOTFOUND' || err.code === 'EAI_AGAIN';
         res.status(500).json({
             success: false,
-            message: 'เกิดข้อผิดพลาดในการเชื่อมต่อหรือค้นหาข้อมูล'
+            message: isDnsError
+                ? 'ไม่พบ host ฐานข้อมูล กรุณาตั้ง DATABASE_URL เป็น Supabase Transaction Pooler URL สำหรับ Vercel'
+                : 'เกิดข้อผิดพลาดในการเชื่อมต่อหรือค้นหาข้อมูล'
         });
     }
 });
