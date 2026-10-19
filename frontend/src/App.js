@@ -28,7 +28,7 @@ function App() {
     setError('');
     try {
       //const res = await axios.post('http://localhost:5000/api/login', { id_card: idCard });
-      const res = await axios.post('/api/login', { id_card: idCard });
+      const res = await axios.post('https://district-officer-report-wwkv-69kzbvohw-natthasit1.vercel.app/api/login', { id_card: idCard });
       if (res.data.success) {
         setUser(res.data.user);
         if (res.data.user.role === 'admin') {
