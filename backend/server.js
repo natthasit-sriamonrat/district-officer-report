@@ -19,10 +19,35 @@ app.use(express.json());
 // });
 
 // ตั้งค่าเชื่อมต่อ: รองรับทั้งบน Cloud (Supabase) และ Local
+// const pool = new Pool({
+//     connectionString: process.env.DATABASE_URL,
+//     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+// });
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  },
+  connectionTimeoutMillis: 10000,
+  max: 5
 });
+
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL pool error:', err.message);
+});
+
+// ตรวจสอบการเชื่อมต่อโดยไม่เปิด Client ค้างไว้
+pool.query('SELECT NOW()')
+  .then(() => {
+    console.log('Connected to PostgreSQL successfully');
+  })
+  .catch((err) => {
+    console.error('PostgreSQL connection failed:', {
+      code: err.code,
+      message: err.message
+    });
+  });
 
 pool.connect((err) => {
     if (err) {
@@ -32,18 +57,18 @@ pool.connect((err) => {
     }
 });
 
-pool.connect((err) => {
-    if (err) {
-        console.error('Database connection error', err.stack);
-    } else {
-        console.log('Connected to PostgreSQL Database via Docker.');
-    }
-});
+// pool.connect((err) => {
+//     if (err) {
+//         console.error('Database connection error', err.stack);
+//     } else {
+//         console.log('Connected to PostgreSQL Database via Docker.');
+//     }
+// });
 
 // 1. API Login ด้วยเลข 13 หลัก
 app.post('/api/login', async (req, res) => {
     const { id_card } = req.body;
-    
+
     if (!id_card || id_card.length !== 13) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกเลขบัตรประชาชน 13 หลักให้ถูกต้อง' });
     }
@@ -57,15 +82,15 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = result.rows[0];
-        
+
         // ตรวจสอบสถานะการทำงาน (INACTIVE = ไม่ได้ทำงานแล้ว)
         if (user.status === 'INACTIVE') {
             return res.status(403).json({ success: false, message: 'สถานะของคุณถูกระงับ (ไม่ได้ทำงานแล้ว)' });
         }
 
-        res.json({ 
-            success: true, 
-            message: 'เข้าสู่ระบบสำเร็จ', 
+        res.json({
+            success: true,
+            message: 'เข้าสู่ระบบสำเร็จ',
             user: {
                 user_id: user.user_id,
                 id_card: user.id_card,
@@ -81,11 +106,18 @@ app.post('/api/login', async (req, res) => {
                 position: user.position,
                 status: user.status,
                 role: user.role
-            } 
+            }
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Database error' });
+        console.error('Login database error:', {
+            code: err.code,
+            message: err.message
+        });
+
+        res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการเชื่อมต่อหรือค้นหาข้อมูล'
+        });
     }
 });
 
@@ -109,10 +141,10 @@ app.get('/api/admin/users', async (req, res) => {
 
 // 3. API สำหรับ Admin: เพิ่มผู้ใช้งานใหม่ (Generate User)
 app.post('/api/admin/users', async (req, res) => {
-    const { 
-        id_card, prefix, first_name, last_name, birth_date, 
-        moo, subdistrict, district, province, 
-        position, status, role 
+    const {
+        id_card, prefix, first_name, last_name, birth_date,
+        moo, subdistrict, district, province,
+        position, status, role
     } = req.body;
 
     try {
@@ -125,20 +157,20 @@ app.post('/api/admin/users', async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         `;
         await pool.query(query, [
-            id_card, 
-            prefix, 
-            first_name, 
-            last_name, 
-            birth_date, 
-            moo || '', 
-            subdistrict, 
-            district, 
-            province, 
-            position, 
-            status || 'ACTIVE', 
+            id_card,
+            prefix,
+            first_name,
+            last_name,
+            birth_date,
+            moo || '',
+            subdistrict,
+            district,
+            province,
+            position,
+            status || 'ACTIVE',
             role || 'user'
         ]);
-        
+
         res.json({ success: true, message: 'เพิ่มผู้ใช้งานสำเร็จ' });
     } catch (err) {
         if (err.code === '23505') { // Error code สำหรับ Duplicate key ใน PostgreSQL
@@ -152,10 +184,10 @@ app.post('/api/admin/users', async (req, res) => {
 // 4. API สำหรับ Admin: แก้ไขข้อมูลผู้ใช้งาน (Update)
 app.put('/api/admin/users/:id', async (req, res) => {
     const userId = req.params.id;
-    const { 
-        id_card, prefix, first_name, last_name, birth_date, 
-        moo, subdistrict, district, province, 
-        position, status, role 
+    const {
+        id_card, prefix, first_name, last_name, birth_date,
+        moo, subdistrict, district, province,
+        position, status, role
     } = req.body;
 
     try {
@@ -167,11 +199,11 @@ app.put('/api/admin/users/:id', async (req, res) => {
             WHERE user_id = $13
         `;
         await pool.query(query, [
-            id_card, prefix, first_name, last_name, birth_date, 
-            moo || '', subdistrict, district, province, 
+            id_card, prefix, first_name, last_name, birth_date,
+            moo || '', subdistrict, district, province,
             position, status, role, userId
         ]);
-        
+
         res.json({ success: true, message: 'อัปเดตข้อมูลผู้ใช้งานสำเร็จ' });
     } catch (err) {
         if (err.code === '23505') {
