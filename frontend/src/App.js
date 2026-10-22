@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 import PerformanceReport from './PerformanceReport';
@@ -14,6 +14,10 @@ function App() {
   
   // State สำหรับ Admin Dashboard
   const [usersList, setUsersList] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [submissionSearch, setSubmissionSearch] = useState('');
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState('');
   const [form, setForm] = useState({
     id_card: '', prefix: 'นาย', first_name: '', last_name: '', birth_date: '', 
     moo: '', subdistrict: '', district: '', province: '', 
@@ -21,6 +25,34 @@ function App() {
   });
 
   const [editingUserId, setEditingUserId] = useState(null);
+
+  // โหลดรายการส่งรายงานสำหรับ Admin และค้นหาเมื่อพิมพ์ข้อความ
+  useEffect(() => {
+    if (user?.role !== 'admin') return undefined;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setSubmissionsLoading(true);
+      setSubmissionsError('');
+      try {
+        const res = await axios.get('/api/admin/submissions', {
+          params: { search: submissionSearch }
+        });
+        if (!cancelled) setSubmissions(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        if (!cancelled) {
+          setSubmissionsError(err.response?.data?.message || 'โหลดรายการรายงานไม่สำเร็จ');
+        }
+      } finally {
+        if (!cancelled) setSubmissionsLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [user?.role, submissionSearch]);
 
   // ฟังก์ชัน Login ด้วยเลข 13 หลัก
   const handleLogin = async (e) => {
@@ -55,16 +87,20 @@ function App() {
   const handleSubmitUser = async (e) => {
     e.preventDefault();
     try {
+      const userPayload = { ...form };
+      // Existing IDs are not recoverable from their HMAC. Leave the ID unchanged
+      // when editing the other profile fields.
+      if (editingUserId && !userPayload.id_card) delete userPayload.id_card;
       if (editingUserId) {
-        //const res = await axios.put(`http://localhost:5000/api/admin/users/${editingUserId}`, form);
-        const res = await axios.put(`/api/admin/users/${editingUserId}`, form);
+        //const res = await axios.put(`http://localhost:5000/api/admin/users/${editingUserId}`, userPayload);
+        const res = await axios.put(`/api/admin/users/${editingUserId}`, userPayload);
         if (res.data.success) {
           alert('อัปเดตข้อมูลผู้ใช้งานสำเร็จ');
           setEditingUserId(null);
         }
       } else {
-        //const res = await axios.post('http://localhost:5000/api/admin/users', form);
-        const res = await axios.post('/api/admin/users', form);
+        //const res = await axios.post('http://localhost:5000/api/admin/users', userPayload);
+        const res = await axios.post('/api/admin/users', userPayload);
         if (res.data.success) {
           alert('เพิ่มผู้ใช้งานสำเร็จ');
         }
@@ -84,7 +120,7 @@ function App() {
   const handleEditClick = (u) => {
     setEditingUserId(u.user_id);
     setForm({
-      id_card: u.id_card,
+      id_card: '',
       prefix: u.prefix,
       first_name: u.first_name,
       last_name: u.last_name,
@@ -251,7 +287,7 @@ function App() {
           <h3>{editingUserId ? `แก้ไขข้อมูลผู้ใช้ (ID: ${editingUserId})` : 'เพิ่มผู้ใช้งานใหม่ (Create)'}</h3>
           <form onSubmit={handleSubmitUser}>
             <div style={styles.gridForm}>
-              <input type="text" placeholder="เลขบัตร 13 หลัก" maxLength="13" value={form.id_card} onChange={e => setForm({...form, id_card: e.target.value})} required style={styles.input} />
+              <input type="text" placeholder={editingUserId ? 'เลขบัตรใหม่ (เว้นว่างเพื่อใช้ค่าเดิม)' : 'เลขบัตร 13 หลัก'} maxLength="13" value={form.id_card} onChange={e => setForm({...form, id_card: e.target.value})} required={!editingUserId} style={styles.input} />
               <select value={form.prefix} onChange={e => setForm({...form, prefix: e.target.value})} style={styles.input}>
                 <option value="นาย">นาย</option>
                 <option value="นาง">นาง</option>
@@ -326,6 +362,59 @@ function App() {
                       <button onClick={() => handleDeleteUser(u.user_id)} style={{ ...styles.button, padding: '5px 10px', background: '#dc3545', color: 'white', fontSize: '12px' }}>
                         ลบ
                       </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ตารางแสดงรายการ PDF ที่ผู้ใช้งานส่ง พร้อมค้นหา */}
+        <div style={styles.card}>
+          <h3>รายการรายงาน PDF ที่ส่งเข้าระบบ</h3>
+          <input
+            type="search"
+            value={submissionSearch}
+            onChange={(e) => setSubmissionSearch(e.target.value)}
+            placeholder="ค้นหาด้วยเลขบัตร, ชื่อ, นามสกุล, หมู่, ตำแหน่ง..."
+            aria-label="ค้นหารายงานตามเลขบัตร ชื่อ นามสกุล หมู่ หรือตำแหน่ง"
+            style={{ ...styles.input, maxWidth: '600px' }}
+          />
+          {submissionsLoading && <p role="status">กำลังโหลดรายการ...</p>}
+          {submissionsError && <p role="alert" style={{ color: '#dc3545' }}>{submissionsError}</p>}
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>เลขบัตรประชาชน</th>
+                  <th style={styles.th}>ชื่อ-นามสกุล</th>
+                  <th style={styles.th}>หมู่</th>
+                  <th style={styles.th}>ตำแหน่ง</th>
+                  <th style={styles.th}>ชื่อไฟล์งาน</th>
+                  <th style={styles.th}>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!submissionsLoading && submissions.length === 0 ? (
+                  <tr>
+                    <td style={styles.td} colSpan="6">
+                      {submissionSearch ? 'ไม่พบรายการที่ค้นหา' : 'ยังไม่มีรายงานที่ส่งเข้าระบบ'}
+                    </td>
+                  </tr>
+                ) : submissions.map((item) => (
+                  <tr key={item.submission_id || `${item.file_name}-${item.created_at}`}>
+                    <td style={styles.td}>{item.id_card || '-'}</td>
+                    <td style={styles.td}>{[item.prefix, item.first_name, item.last_name].filter(Boolean).join(' ') || '-'}</td>
+                    <td style={styles.td}>{item.moo || '-'}</td>
+                    <td style={styles.td}>{item.position || '-'}</td>
+                    <td style={styles.td}>{item.file_name || '-'}</td>
+                    <td style={styles.td}>
+                      {item.file_url ? (
+                        <a href={item.file_url} target="_blank" rel="noopener noreferrer">
+                          ดู/ดาวน์โหลด PDF
+                        </a>
+                      ) : 'ไม่มีไฟล์'}
                     </td>
                   </tr>
                 ))}

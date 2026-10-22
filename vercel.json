@@ -17,6 +17,10 @@
       "destination": { "service": "backend" }
     },
     {
+      "source": "/backup_filework/(.*)",
+      "destination": { "service": "backend" }
+    },
+    {
       "source": "/(.*)",
       "destination": { "service": "frontend" }
     }

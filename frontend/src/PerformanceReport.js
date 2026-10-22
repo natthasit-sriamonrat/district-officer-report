@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
 function PerformanceReport({ user }) {
+    const [pdfFile, setPdfFile] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadMessage, setUploadMessage] = useState('');
+
     // รายการเดือนภาษาไทย
     const monthsList = [
         'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -74,6 +78,59 @@ function PerformanceReport({ user }) {
         setTimeout(() => {
             document.title = originalTitle;
         }, 1000);
+    };
+
+    const handlePdfUpload = async (event) => {
+        event.preventDefault();
+        const formElement = event.currentTarget;
+        setUploadMessage('');
+
+        if (!pdfFile) {
+            setUploadMessage('กรุณาเลือกไฟล์ PDF ที่ต้องการส่ง');
+            return;
+        }
+
+        if (pdfFile.type !== 'application/pdf') {
+            setUploadMessage('อนุญาตให้อัปโหลดเฉพาะไฟล์ PDF เท่านั้น');
+            return;
+        }
+
+        if (pdfFile.size > 10 * 1024 * 1024) {
+            setUploadMessage('ไฟล์มีขนาดเกิน 10 MB');
+            return;
+        }
+
+        const formData = new FormData();
+        // Add fields before the file: Multer uses these values when creating
+        // the stored filename.
+        formData.append('id_card', user?.id_card || '');
+        formData.append('prefix', user?.prefix || '');
+        formData.append('first_name', user?.first_name || '');
+        formData.append('last_name', user?.last_name || '');
+        formData.append('moo', user?.moo || '');
+        formData.append('position', user?.position || '');
+        formData.append('pdf_file', pdfFile);
+
+        setIsUploading(true);
+        try {
+            const response = await fetch('/api/upload-report', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(result.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์');
+            }
+
+            setUploadMessage(result.message || 'ส่งรายงานสำเร็จ');
+            setPdfFile(null);
+            formElement.reset();
+        } catch (error) {
+            setUploadMessage(error.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -237,6 +294,36 @@ function PerformanceReport({ user }) {
                         </div>
                     )}
                 </div>
+
+                <form onSubmit={handlePdfUpload} style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '6px' }}>
+                    <label htmlFor="report-pdf" style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>
+                        ส่งรายงาน PDF (ขนาดไม่เกิน 10 MB):
+                    </label>
+                    <input
+                        id="report-pdf"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        required
+                        disabled={isUploading}
+                        onChange={(event) => {
+                            setPdfFile(event.target.files?.[0] || null);
+                            setUploadMessage('');
+                        }}
+                        style={{ display: 'block', marginBottom: '10px' }}
+                    />
+                    <button
+                        type="submit"
+                        disabled={isUploading || !pdfFile}
+                        style={{ padding: '10px 16px', background: isUploading ? '#6c757d' : '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: isUploading ? 'wait' : 'pointer', fontWeight: 'bold' }}
+                    >
+                        {isUploading ? 'กำลังส่งไฟล์...' : 'ส่งรายงาน (PDF)'}
+                    </button>
+                    {uploadMessage && (
+                        <p role="status" style={{ marginBottom: 0, color: uploadMessage.includes('สำเร็จ') ? 'green' : '#dc3545' }}>
+                            {uploadMessage}
+                        </p>
+                    )}
+                </form>
 
                 <button
                     onClick={handlePrint}
